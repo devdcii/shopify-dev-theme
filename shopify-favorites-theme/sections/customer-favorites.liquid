@@ -1,0 +1,675 @@
+{{- 'customer-favorites.css' | asset_url | stylesheet_tag -}}
+
+<div class="cf-section">
+
+  <!-- ═══════════════════════════════════════════
+       HERO
+  ═══════════════════════════════════════════ -->
+  <section class="cf-hero" aria-label="Customer Favorites">
+    <div class="cf-hero__inner">
+      <span class="cf-hero__eyebrow">Customer Favorites</span>
+      <h1 class="cf-hero__title">Your Favorites</h1>
+      <p class="cf-hero__sub">Products you've saved — all in one place.</p>
+      <a href="#cf-grid" class="cf-hero__cta">View Collection</a>
+    </div>
+    <!-- Decorative blobs — pure CSS, no images -->
+    <span class="cf-hero__blob cf-hero__blob--a" aria-hidden="true"></span>
+    <span class="cf-hero__blob cf-hero__blob--b" aria-hidden="true"></span>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       GRID
+  ═══════════════════════════════════════════ -->
+  <div class="cf-grid" id="cf-grid" role="list" aria-label="Favorite products">
+    <div class="cf-loading" aria-live="polite">
+      <span class="cf-spinner" aria-hidden="true"></span>
+      <p>Loading your favorites&hellip;</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Live region for toast announcements -->
+<div id="cf-toast-region" aria-live="assertive" aria-atomic="true" class="visually-hidden"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const API_URL  = '{{ section.settings.api_url }}';
+  const grid     = document.getElementById('cf-grid');
+  const toastReg = document.getElementById('cf-toast-region');
+
+  /* ── Helpers ───────────────────────────────────── */
+
+  function formatDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  }
+
+  function safeId(id) {
+    // productId may contain special chars — sanitise for use in selectors
+    return String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  /* ── Toast ─────────────────────────────────────── */
+
+  let toastTimer;
+  function showToast(msg, type) {
+    const existing = document.getElementById('cf-toast');
+    if (existing) existing.remove();
+    clearTimeout(toastTimer);
+
+    const t = document.createElement('div');
+    t.id        = 'cf-toast';
+    t.className = 'cf-toast cf-toast--' + type;
+    t.setAttribute('role', 'status');
+
+    const icon = type === 'success' ? '✓' : '✗';
+    t.innerHTML = '<span class="cf-toast__icon" aria-hidden="true">' + icon + '</span>'
+                + '<span>' + msg + '</span>';
+
+    document.body.appendChild(t);
+    toastReg.textContent = msg; // screen reader
+
+    // Force reflow so transition fires
+    void t.offsetWidth;
+    t.classList.add('cf-toast--show');
+
+    toastTimer = setTimeout(function () {
+      t.classList.remove('cf-toast--show');
+      setTimeout(function () { t.remove(); toastReg.textContent = ''; }, 320);
+    }, 3200);
+  }
+
+  /* ── Card template ─────────────────────────────── */
+
+  function cardHTML(item) {
+    const sid   = safeId(item.productId);
+    const href  = '/products/' + (item.productHandle || item.productId);
+    const img   = item.productImage
+      || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png';
+    const title = item.productTitle || 'Product';
+    const date  = formatDate(item.createdAt);
+
+    return '<article class="cf-card" id="cf-card-' + sid + '" role="listitem">'
+      + '  <div class="cf-card__media">'
+      + '    <a href="' + href + '" aria-label="View ' + title + '" tabindex="0">'
+      + '      <img src="' + img + '"'
+      + '           alt="' + title + '"'
+      + '           class="cf-card__img"'
+      + '           loading="lazy"'
+      + '           onerror="this.src=\'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png\'">'
+      + '    </a>'
+      + '    <button class="cf-card__heart cf-card__heart--active"'
+      + '            id="cf-heart-' + sid + '"'
+      + '            aria-label="Remove ' + title + ' from favorites"'
+      + '            aria-pressed="true"'
+      + '            data-product-id="' + item.productId + '">'
+      + '      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">'
+      + '        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06'
+      + '                 a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78'
+      + '                 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'
+      + '      </svg>'
+      + '    </button>'
+      + '  </div>'
+      + '  <div class="cf-card__body">'
+      + '    <a href="' + href + '" class="cf-card__title-link" tabindex="0">'
+      + '      <p class="cf-card__title">' + title + '</p>'
+      + '    </a>'
+      + '    <p class="cf-card__date">Saved ' + date + '</p>'
+      + '  </div>'
+      + '</article>';
+  }
+
+  /* ── Empty state ────────────────────────────────── */
+
+  function emptyHTML() {
+    return '<div class="cf-empty">'
+      + '  <svg class="cf-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">'
+      + '    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'
+      + '  </svg>'
+      + '  <h2 class="cf-empty__title">Nothing saved yet</h2>'
+      + '  <p class="cf-empty__msg">Browse our collection and tap the heart on products you love.</p>'
+      + '  <a href="/collections/all" class="cf-empty__cta">Shop now</a>'
+      + '</div>';
+  }
+
+  function errorHTML() {
+    return '<div class="cf-empty cf-empty--error">'
+      + '  <svg class="cf-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">'
+      + '    <circle cx="12" cy="12" r="10"/>'
+      + '    <line x1="12" y1="8" x2="12" y2="12"/>'
+      + '    <line x1="12" y1="16" x2="12.01" y2="16"/>'
+      + '  </svg>'
+      + '  <h2 class="cf-empty__title">Couldn\'t load favorites</h2>'
+      + '  <p class="cf-empty__msg">Check your connection and try again.</p>'
+      + '  <button class="cf-empty__cta" onclick="loadFavorites()">Retry</button>'
+      + '</div>';
+  }
+
+  /* ── Load ───────────────────────────────────────── */
+
+  function loadFavorites() {
+    grid.innerHTML = '<div class="cf-loading" aria-live="polite">'
+      + '<span class="cf-spinner" aria-hidden="true"></span>'
+      + '<p>Loading your favorites&hellip;</p>'
+      + '</div>';
+
+    fetch(API_URL + '/api/favorites')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.favorites || data.favorites.length === 0) {
+          grid.innerHTML = emptyHTML();
+          return;
+        }
+        grid.innerHTML = data.favorites.map(cardHTML).join('');
+        // Attach heart listeners after render
+        grid.querySelectorAll('.cf-card__heart').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            removeFavorite(btn.dataset.productId, btn);
+          });
+        });
+      })
+      .catch(function () {
+        grid.innerHTML = errorHTML();
+      });
+  }
+
+  /* ── Remove ─────────────────────────────────────── */
+
+  function removeFavorite(productId, btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.setAttribute('aria-pressed', 'false');
+    btn.classList.add('cf-card__heart--removing');
+
+    fetch(API_URL + '/api/favorites', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: productId })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function () {
+      const sid  = safeId(productId);
+      const card = document.getElementById('cf-card-' + sid);
+      if (card) {
+        card.classList.add('cf-card--exit');
+        setTimeout(function () {
+          card.remove();
+          if (!grid.querySelector('.cf-card')) {
+            grid.innerHTML = emptyHTML();
+          }
+        }, 400);
+      }
+      showToast('Removed from favorites', 'success');
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.setAttribute('aria-pressed', 'true');
+      btn.classList.remove('cf-card__heart--removing');
+      showToast('Could not remove — please try again', 'error');
+    });
+  }
+
+  /* ── Init ────────────────────────────────────────── */
+  loadFavorites();
+
+})();
+</script>
+
+<style>
+/* ════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — single source of truth
+════════════════════════════════════════════════════ */
+.cf-section {
+  --cf-pink:        #e8384f;
+  --cf-pink-light:  #fff0f2;
+  --cf-pink-dark:   #c02035;
+  --cf-text:        #111111;
+  --cf-text-muted:  #7a7a7a;
+  --cf-border:      #e8e8e8;
+  --cf-bg-card:     #ffffff;
+  --cf-bg-page:     #fafafa;
+  --cf-radius-card: 14px;
+  --cf-radius-btn:  50px;
+  --cf-shadow-card: 0 2px 8px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
+  --cf-shadow-hover:0 8px 24px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.06);
+  --cf-transition:  0.25s cubic-bezier(.4,0,.2,1);
+  --cf-gap:         24px;
+  --cf-max-w:       1200px;
+
+  max-width: var(--cf-max-w);
+  margin: 0 auto;
+  padding: 0 20px 72px;
+  background: var(--cf-bg-page);
+}
+
+/* ════════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════════ */
+.cf-hero {
+  position: relative;
+  overflow: hidden;
+  background: #0d0d0d;
+  border-radius: 20px;
+  margin-bottom: 52px;
+  padding: 64px 40px 60px;
+  text-align: center;
+  isolation: isolate;
+}
+
+/* Soft ambient blobs — pure CSS, no images */
+.cf-hero__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  pointer-events: none;
+  z-index: 0;
+}
+.cf-hero__blob--a {
+  width: 340px; height: 340px;
+  background: var(--cf-pink);
+  opacity: 0.18;
+  top: -80px; left: -60px;
+  animation: cf-drift 9s ease-in-out infinite alternate;
+}
+.cf-hero__blob--b {
+  width: 280px; height: 280px;
+  background: #ff8fa3;
+  opacity: 0.12;
+  bottom: -80px; right: -40px;
+  animation: cf-drift 12s ease-in-out infinite alternate-reverse;
+}
+@keyframes cf-drift {
+  to { transform: translate(30px, 20px); }
+}
+
+.cf-hero__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.cf-hero__eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--cf-pink);
+  background: rgba(232,56,79,.12);
+  border: 1px solid rgba(232,56,79,.25);
+  padding: 5px 14px;
+  border-radius: var(--cf-radius-btn);
+  margin-bottom: 20px;
+}
+
+.cf-hero__title {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0 0 14px;
+  line-height: 1.1;
+}
+
+.cf-hero__sub {
+  font-size: 16px;
+  color: rgba(255,255,255,.55);
+  margin: 0 0 32px;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cf-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--cf-pink);
+  color: #fff;
+  padding: 13px 28px;
+  border-radius: var(--cf-radius-btn);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--cf-transition), transform var(--cf-transition);
+}
+.cf-hero__cta:hover {
+  background: var(--cf-pink-dark);
+  transform: translateY(-2px);
+}
+.cf-hero__cta:focus-visible {
+  outline: 2px solid var(--cf-pink);
+  outline-offset: 3px;
+}
+
+/* ════════════════════════════════════════════════════
+   GRID — equal-height cards via CSS grid
+════════════════════════════════════════════════════ */
+.cf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--cf-gap);
+  align-items: start; /* prevent full-height stretch */
+}
+
+/* ════════════════════════════════════════════════════
+   CARD
+════════════════════════════════════════════════════ */
+.cf-card {
+  background: var(--cf-bg-card);
+  border-radius: var(--cf-radius-card);
+  box-shadow: var(--cf-shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    box-shadow var(--cf-transition),
+    transform var(--cf-transition),
+    opacity 0.35s ease;
+}
+.cf-card:hover {
+  box-shadow: var(--cf-shadow-hover);
+  transform: translateY(-5px);
+}
+.cf-card--exit {
+  opacity: 0;
+  transform: scale(0.94) translateY(4px);
+  pointer-events: none;
+}
+
+/* Media wrapper — aspect-ratio keeps all cards consistent */
+.cf-card__media {
+  position: relative;
+  width: 100%;
+  /* 4:3 aspect ratio — works across all screen sizes */
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #f4f4f4;
+  flex-shrink: 0;
+}
+
+.cf-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.42s cubic-bezier(.4,0,.2,1);
+}
+.cf-card:hover .cf-card__img {
+  transform: scale(1.05);
+}
+
+/* Heart button */
+.cf-card__heart {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  transition:
+    transform var(--cf-transition),
+    background var(--cf-transition),
+    color var(--cf-transition);
+  color: #cccccc;
+}
+.cf-card__heart--active {
+  color: var(--cf-pink);
+  background: var(--cf-pink-light);
+}
+.cf-card__heart svg {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+}
+.cf-card__heart:hover {
+  transform: scale(1.18);
+}
+.cf-card__heart:focus-visible {
+  outline: 2px solid var(--cf-pink);
+  outline-offset: 2px;
+}
+.cf-card__heart--removing {
+  animation: cf-heart-pop 0.3s ease;
+}
+@keyframes cf-heart-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+/* Body */
+.cf-card__body {
+  padding: 14px 16px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cf-card__title-link {
+  text-decoration: none;
+}
+.cf-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cf-text);
+  line-height: 1.45;
+  margin: 0;
+  transition: color var(--cf-transition);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cf-card__title-link:hover .cf-card__title {
+  color: var(--cf-pink);
+}
+.cf-card__date {
+  font-size: 11px;
+  color: var(--cf-text-muted);
+  margin: 0;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* ════════════════════════════════════════════════════
+   LOADING STATE
+════════════════════════════════════════════════════ */
+.cf-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 72px 20px;
+  color: var(--cf-text-muted);
+  font-size: 14px;
+}
+.cf-spinner {
+  display: block;
+  width: 36px; height: 36px;
+  border: 2.5px solid var(--cf-border);
+  border-top-color: var(--cf-pink);
+  border-radius: 50%;
+  animation: cf-spin 0.75s linear infinite;
+}
+@keyframes cf-spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════════════════
+   EMPTY / ERROR STATE
+════════════════════════════════════════════════════ */
+.cf-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.cf-empty__icon {
+  width: 48px; height: 48px;
+  color: var(--cf-border);
+  margin-bottom: 4px;
+  stroke: var(--cf-pink);
+  opacity: 0.35;
+}
+.cf-empty--error .cf-empty__icon {
+  stroke: var(--cf-text-muted);
+}
+.cf-empty__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cf-text);
+  margin: 0;
+}
+.cf-empty__msg {
+  font-size: 14px;
+  color: var(--cf-text-muted);
+  margin: 0;
+  max-width: 300px;
+}
+.cf-empty__cta {
+  display: inline-flex;
+  align-items: center;
+  background: var(--cf-pink);
+  color: #fff;
+  padding: 12px 26px;
+  border-radius: var(--cf-radius-btn);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background var(--cf-transition), transform var(--cf-transition);
+}
+.cf-empty__cta:hover {
+  background: var(--cf-pink-dark);
+  transform: translateY(-2px);
+}
+.cf-empty__cta:focus-visible {
+  outline: 2px solid var(--cf-pink);
+  outline-offset: 3px;
+}
+
+/* ════════════════════════════════════════════════════
+   TOAST NOTIFICATION
+════════════════════════════════════════════════════ */
+.cf-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: var(--cf-radius-btn);
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  z-index: 4000;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+}
+.cf-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.cf-toast--success {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+.cf-toast--error {
+  background: var(--cf-pink);
+  color: #ffffff;
+}
+.cf-toast__icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* ════════════════════════════════════════════════════
+   ACCESSIBILITY
+════════════════════════════════════════════════════ */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .cf-section {
+    padding: 0 16px 56px;
+  }
+  .cf-hero {
+    padding: 48px 24px 44px;
+    border-radius: 16px;
+    margin-bottom: 36px;
+  }
+  .cf-hero__title {
+    font-size: 30px;
+  }
+  .cf-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cf-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .cf-hero__blob,
+  .cf-card,
+  .cf-card__img,
+  .cf-card__heart,
+  .cf-hero__cta {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Customer Favorites",
+  "settings": [
+    {
+      "type": "text",
+      "id": "api_url",
+      "label": "App API URL",
+      "default": "https://localhost",
+      "info": "Enter your Shopify app tunnel URL (e.g. ngrok or Cloudflare)"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Customer Favorites"
+    }
+  ]
+}
+{% endschema %}

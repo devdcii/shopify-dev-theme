@@ -1,0 +1,348 @@
+/*
+  footer-improvements.css
+  ─────────────────────────────────────────────────
+  Drop-in CSS overrides for Dawn's footer section.
+
+  How to use:
+    1. Upload this file to your theme's /assets/ folder.
+    2. Add this line at the TOP of sections/footer.liquid:
+
+       {{ 'footer-improvements.css' | asset_url | stylesheet_tag }}
+
+  ─────────────────────────────────────────────────
+*/
+
+/* ════════════════════════════════════════════════════
+   DESIGN TOKENS (inherit from header-improvements.css
+   if loaded, otherwise self-contained)
+════════════════════════════════════════════════════ */
+:root {
+  --ftr-pink:       #e8384f;
+  --ftr-border:     rgba(0,0,0,.07);
+  --ftr-text-muted: rgba(0,0,0,.45);
+  --ftr-radius:     8px;
+  --ftr-transition: 0.22s cubic-bezier(.4,0,.2,1);
+}
+
+/* ════════════════════════════════════════════════════
+   FOOTER WRAPPER — breathing room
+════════════════════════════════════════════════════ */
+.footer {
+  border-top: 1px solid var(--ftr-border);
+  margin-top: 0 !important;
+}
+
+/* ════════════════════════════════════════════════════
+   CONTENT TOP — blocks + newsletter row
+════════════════════════════════════════════════════ */
+.footer__content-top {
+  padding-top: 56px;
+  padding-bottom: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px 48px;
+  align-items: flex-start;
+}
+
+/* ════════════════════════════════════════════════════
+   LINK LIST BLOCKS
+════════════════════════════════════════════════════ */
+.footer-block__heading {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 18px !important;
+  color: inherit !important;
+  opacity: 0.55;
+}
+
+.footer-block__details-content .list-menu__item {
+  font-size: 14px !important;
+  padding: 5px 0 !important;
+  line-height: 1.5 !important;
+  opacity: 0.75;
+  transition: opacity var(--ftr-transition), color var(--ftr-transition);
+  text-decoration: none;
+}
+.footer-block__details-content .list-menu__item:hover {
+  opacity: 1;
+  color: var(--ftr-pink) !important;
+}
+.footer-block__details-content .list-menu__item--active {
+  color: var(--ftr-pink) !important;
+  opacity: 1;
+  font-weight: 500;
+}
+
+/* ════════════════════════════════════════════════════
+   NEWSLETTER
+════════════════════════════════════════════════════ */
+.footer__newsletter,
+.footer-block--newsletter {
+  min-width: 280px;
+  flex: 1 1 280px;
+  max-width: 380px;
+}
+
+.footer-block__heading.newsletter-heading,
+.footer__newsletter .footer-block__heading {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  opacity: 1;
+  margin-bottom: 6px !important;
+}
+
+/* Sub-label under heading — if you add a paragraph */
+.footer__newsletter p {
+  font-size: 13px;
+  opacity: 0.6;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* Input row */
+.newsletter-form .field {
+  display: flex;
+  gap: 0;
+  border-radius: var(--ftr-radius);
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px var(--ftr-border);
+  transition: box-shadow var(--ftr-transition);
+}
+.newsletter-form .field:focus-within {
+  box-shadow: 0 0 0 2px var(--ftr-pink);
+}
+
+.newsletter-form .field__input {
+  flex: 1;
+  border: none !important;
+  outline: none !important;
+  font-size: 14px;
+  padding: 12px 14px;
+  background: transparent;
+  box-shadow: none !important;
+}
+.newsletter-form .field__label {
+  font-size: 13px;
+}
+
+.newsletter-form__button.field__button {
+  border: none !important;
+  background: var(--ftr-pink) !important;
+  color: #fff !important;
+  border-radius: 0 var(--ftr-radius) var(--ftr-radius) 0 !important;
+  padding: 0 18px !important;
+  cursor: pointer;
+  transition: background var(--ftr-transition);
+  display: flex;
+  align-items: center;
+}
+.newsletter-form__button.field__button:hover {
+  background: #c02035 !important;
+}
+.newsletter-form__button.field__button svg {
+  width: 18px; height: 18px;
+}
+
+/* Success + error messages */
+.newsletter-form__message--success {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--ftr-radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+.newsletter-form__message.form__message:not(.newsletter-form__message--success) {
+  color: #991b1b;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* ════════════════════════════════════════════════════
+   SOCIAL ICONS
+════════════════════════════════════════════════════ */
+.list-social {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px !important;
+  margin-top: 20px !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.list-social__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ftr-border) !important;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity var(--ftr-transition), border-color var(--ftr-transition), color var(--ftr-transition) !important;
+  text-decoration: none !important;
+}
+.list-social__link:hover {
+  opacity: 1;
+  border-color: var(--ftr-pink) !important;
+  color: var(--ftr-pink) !important;
+}
+.list-social__link:focus-visible {
+  outline: 2px solid var(--ftr-pink);
+  outline-offset: 2px;
+}
+.list-social__link svg,
+.list-social__link .icon {
+  width: 16px; height: 16px;
+}
+
+/* ════════════════════════════════════════════════════
+   FOLLOW ON SHOP
+════════════════════════════════════════════════════ */
+.footer__follow-on-shop {
+  margin-top: 16px;
+}
+
+/* ════════════════════════════════════════════════════
+   BOTTOM BAR — copyright + payments
+════════════════════════════════════════════════════ */
+.footer__content-bottom {
+  border-top: 1px solid var(--ftr-border);
+  padding-top: 24px;
+  padding-bottom: 28px;
+}
+
+.footer__content-bottom-wrapper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.footer__content-bottom-wrapper--center {
+  justify-content: center;
+}
+
+/* Copyright */
+.footer__copyright {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 12px;
+  opacity: 0.5;
+}
+.footer__copyright a {
+  text-decoration: none;
+  color: inherit;
+}
+.footer__copyright a:hover {
+  color: var(--ftr-pink);
+  opacity: 1;
+}
+
+/* Policy links */
+.policies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  list-style: none;
+  padding: 0; margin: 0;
+}
+.policies a {
+  font-size: 12px;
+  text-decoration: none;
+  opacity: 0.5;
+  transition: opacity var(--ftr-transition);
+}
+.policies a:hover {
+  opacity: 1;
+  color: var(--ftr-pink);
+}
+
+/* Payment icons */
+.footer__payment {
+  margin-left: auto;
+}
+.list-payment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0; margin: 0;
+}
+.list-payment__item svg,
+.list-payment__item .icon {
+  height: 22px;
+  opacity: 0.5;
+  transition: opacity var(--ftr-transition);
+}
+.list-payment__item:hover svg,
+.list-payment__item:hover .icon {
+  opacity: 0.9;
+}
+
+.footer-block__brand-info {
+  max-width: 260px;
+}
+.footer-block__brand-info .rte {
+  font-size: 13.5px;
+  line-height: 1.65;
+  opacity: 0.7;
+  margin-top: 8px;
+}
+.footer-block__image-wrapper {
+  margin-bottom: 12px;
+}
+
+/* ════════════════════════════════════════════════════
+   LOCALIZATION FORMS
+════════════════════════════════════════════════════ */
+.footer__localization .localization-selector {
+  font-size: 13px;
+  border-radius: var(--ftr-radius);
+  border: 1.5px solid var(--ftr-border);
+  padding: 8px 12px;
+  transition: border-color var(--ftr-transition);
+}
+.footer__localization .localization-selector:focus {
+  border-color: var(--ftr-pink);
+  outline: none;
+}
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .footer__content-top {
+    padding-top: 40px;
+    padding-bottom: 28px;
+    gap: 32px;
+  }
+  .footer__newsletter,
+  .footer-block--newsletter {
+    max-width: 100%;
+  }
+  .footer__payment {
+    margin-left: 0;
+    width: 100%;
+  }
+  .footer__content-bottom-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-social__link,
+  .newsletter-form__button,
+  .footer-block__details-content .list-menu__item,
+  .list-payment__item svg {
+    transition: none !important;
+  }
+}

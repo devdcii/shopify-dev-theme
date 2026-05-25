@@ -1,0 +1,350 @@
+{%- comment -%}
+  Snippet: favorite-button.liquid
+  Usage: {% render 'favorite-button', product: product %}
+  Requires: section.settings.api_url to be set on the parent section
+{%- endcomment -%}
+
+<div class="fav-wrap" data-product-id="{{ product.id }}">
+  <button
+    class="fav-btn"
+    id="fav-btn-{{ product.id }}"
+    type="button"
+    aria-label="Save {{ product.title | escape }} to favorites"
+    aria-pressed="false"
+    onclick="handleFavToggle(
+      '{{ product.id }}',
+      '{{ product.title | escape }}',
+      '{{ product.featured_image | img_url: '600x600' }}',
+      '{{ product.handle }}'
+    )"
+  >
+    <!-- Heart SVG — fill toggled via CSS class -->
+    <svg
+      class="fav-btn__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06
+               a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78
+               1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+    <span class="fav-btn__label">Save to Favorites</span>
+  </button>
+
+  <!-- Feedback message — screen reader + visual -->
+  <p
+    class="fav-feedback"
+    id="fav-feedback-{{ product.id }}"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Config ──────────────────────────────────────
+  var FAV_API = '{{ section.settings.api_url }}';
+
+  // ── State labels ────────────────────────────────
+  var LABELS = {
+    idle:    'Save to Favorites',
+    loading: 'Saving…',
+    saved:   'Saved!',
+    exists:  'Already Saved',
+    remove:  'Remove Favorite',
+    error:   'Try Again'
+  };
+
+  // ── Expose toggle to inline onclick ────────────
+  window.handleFavToggle = function (productId, productTitle, productImage, productHandle) {
+    var btn      = document.getElementById('fav-btn-' + productId);
+    var feedback = document.getElementById('fav-feedback-' + productId);
+    if (!btn || btn.disabled) return;
+
+    var isCurrentlySaved = btn.getAttribute('aria-pressed') === 'true';
+
+    if (isCurrentlySaved) {
+      removeFavorite(productId, btn, feedback);
+    } else {
+      addFavorite(productId, productTitle, productImage, productHandle, btn, feedback);
+    }
+  };
+
+  function addFavorite(productId, productTitle, productImage, productHandle, btn, feedback) {
+    setLoading(btn, feedback, LABELS.loading);
+
+    fetch(FAV_API + '/api/favorites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId:     productId,
+        productTitle:  productTitle,
+        productImage:  productImage,
+        productHandle: productHandle
+      })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success === false) {
+        // Already in favorites
+        setSaved(btn, feedback, LABELS.exists, 'info');
+      } else {
+        setSaved(btn, feedback, LABELS.saved, 'success');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-label', 'Remove from favorites');
+        btn.classList.add('fav-btn--saved');
+      }
+      scheduleReset(btn, feedback);
+    })
+    .catch(function () {
+      setError(btn, feedback);
+    });
+  }
+
+  function removeFavorite(productId, btn, feedback) {
+    setLoading(btn, feedback, 'Removing…');
+
+    fetch(FAV_API + '/api/favorites', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: productId })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function () {
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Save to favorites');
+      btn.classList.remove('fav-btn--saved');
+      setFeedback(feedback, 'Removed from favorites', 'info');
+      scheduleReset(btn, feedback);
+    })
+    .catch(function () {
+      setError(btn, feedback);
+    });
+  }
+
+  /* ── UI helpers ─────────────────────────────────── */
+
+  function setLoading(btn, feedback, text) {
+    btn.disabled = true;
+    btn.classList.add('fav-btn--loading');
+    btn.querySelector('.fav-btn__label').textContent = text;
+    feedback.textContent = '';
+    feedback.className = 'fav-feedback';
+  }
+
+  function setSaved(btn, feedback, text, type) {
+    btn.disabled = false;
+    btn.classList.remove('fav-btn--loading');
+    btn.querySelector('.fav-btn__label').textContent = text;
+    setFeedback(feedback, text, type);
+  }
+
+  function setError(btn, feedback) {
+    btn.disabled = false;
+    btn.classList.remove('fav-btn--loading');
+    btn.querySelector('.fav-btn__label').textContent = LABELS.error;
+    setFeedback(feedback, 'Something went wrong. Please try again.', 'error');
+    setTimeout(function () {
+      btn.querySelector('.fav-btn__label').textContent = LABELS.idle;
+      clearFeedback(feedback);
+    }, 3500);
+  }
+
+  function setFeedback(el, msg, type) {
+    el.textContent = msg;
+    el.className   = 'fav-feedback fav-feedback--' + type + ' fav-feedback--visible';
+  }
+
+  function clearFeedback(el) {
+    el.textContent = '';
+    el.className   = 'fav-feedback';
+  }
+
+  function scheduleReset(btn, feedback) {
+    setTimeout(function () {
+      var label = btn.classList.contains('fav-btn--saved') ? LABELS.remove : LABELS.idle;
+      btn.querySelector('.fav-btn__label').textContent = label;
+      clearFeedback(feedback);
+    }, 3200);
+  }
+
+})();
+</script>
+
+<style>
+/* ════════════════════════════════════════════════════
+   FAV BUTTON — product page snippet
+════════════════════════════════════════════════════ */
+.fav-wrap {
+  --fav-pink:       #e8384f;
+  --fav-pink-dark:  #c02035;
+  --fav-pink-light: #fff0f2;
+  --fav-border:     #e8384f;
+  --fav-text:       #e8384f;
+  --fav-radius:     10px;
+  --fav-transition: 0.22s cubic-bezier(.4,0,.2,1);
+  margin: 16px 0;
+}
+
+.fav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  color: var(--fav-text);
+  border: 1.5px solid var(--fav-border);
+  border-radius: var(--fav-radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: hidden;
+  transition:
+    color var(--fav-transition),
+    border-color var(--fav-transition),
+    background var(--fav-transition),
+    transform var(--fav-transition);
+}
+
+/* Hover fill from left */
+.fav-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--fav-pink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--fav-transition);
+  z-index: 0;
+  border-radius: inherit;
+}
+.fav-btn:hover::before,
+.fav-btn:focus-visible::before {
+  transform: scaleX(1);
+}
+.fav-btn:hover,
+.fav-btn:focus-visible {
+  color: #ffffff;
+  border-color: var(--fav-pink);
+}
+.fav-btn:hover .fav-btn__icon,
+.fav-btn:focus-visible .fav-btn__icon {
+  stroke: #ffffff;
+}
+
+.fav-btn:focus-visible {
+  outline: 2px solid var(--fav-pink);
+  outline-offset: 3px;
+}
+
+/* Icon + label on top of ::before overlay */
+.fav-btn__icon,
+.fav-btn__label {
+  position: relative;
+  z-index: 1;
+}
+
+.fav-btn__icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  transition: stroke var(--fav-transition), fill var(--fav-transition), transform 0.18s ease;
+}
+
+/* Saved state */
+.fav-btn--saved {
+  background: var(--fav-pink-light);
+  border-color: var(--fav-pink);
+}
+.fav-btn--saved .fav-btn__icon {
+  fill: var(--fav-pink);
+  stroke: var(--fav-pink);
+}
+.fav-btn--saved:hover .fav-btn__icon,
+.fav-btn--saved:focus-visible .fav-btn__icon {
+  fill: #ffffff;
+}
+
+/* Loading state */
+.fav-btn--loading {
+  opacity: 0.65;
+  cursor: default;
+  pointer-events: none;
+}
+.fav-btn--loading .fav-btn__icon {
+  animation: fav-pulse 1s ease-in-out infinite;
+}
+@keyframes fav-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Feedback message ────────────────────────────── */
+.fav-feedback {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  border-radius: 8px;
+  margin-top: 0;
+  transition:
+    height 0.22s ease,
+    opacity 0.22s ease,
+    margin-top 0.22s ease,
+    padding 0.22s ease;
+}
+.fav-feedback--visible {
+  height: auto;
+  opacity: 1;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+.fav-feedback--success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.fav-feedback--error {
+  background: #fff5f5;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.fav-feedback--info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 600px) {
+  .fav-btn {
+    font-size: 13px;
+    padding: 13px 18px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .fav-btn,
+  .fav-btn::before,
+  .fav-btn__icon,
+  .fav-feedback {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+</style>
