@@ -73,6 +73,7 @@ A Shopify embedded app with a customer favorites feature built with Vite, Node.j
 
 ## Project Structure
 
+```
 shopify-favorites-app/
 ├── customer-favorites-app/     # Embedded app
 │   ├── app/
@@ -82,10 +83,11 @@ shopify-favorites-app/
 │   ├── drizzle.config.js
 │   └── package.json
 └── shopify-favorites-theme/    # Shopify theme
-├── sections/
-│   └── customer-favorites.liquid
-└── snippets/
-└── favorites-button.liquid
+    ├── sections/
+    │   └── customer-favorites.liquid
+    └── snippets/
+        └── favorites-button.liquid
+```
 
 ## Notes
 
