@@ -52,7 +52,7 @@
   'use strict';
 
   // ── Config ──────────────────────────────────────
-  var FAV_API = '{{ section.settings.api_url }}';
+  var FAV_API = '{{ api_url }}';
 
   // ── State labels ────────────────────────────────
   var LABELS = {
@@ -66,17 +66,21 @@
 
   // ── Expose toggle to inline onclick ────────────
   window.handleFavToggle = function (productId, productTitle, productImage, productHandle) {
-    var btn      = document.getElementById('fav-btn-' + productId);
-    var feedback = document.getElementById('fav-feedback-' + productId);
-    if (!btn || btn.disabled) return;
+    {% if customer %}
+      var btn      = document.getElementById('fav-btn-' + productId);
+      var feedback = document.getElementById('fav-feedback-' + productId);
+      if (!btn || btn.disabled) return;
 
-    var isCurrentlySaved = btn.getAttribute('aria-pressed') === 'true';
+      var isCurrentlySaved = btn.getAttribute('aria-pressed') === 'true';
 
-    if (isCurrentlySaved) {
-      removeFavorite(productId, btn, feedback);
-    } else {
-      addFavorite(productId, productTitle, productImage, productHandle, btn, feedback);
-    }
+      if (isCurrentlySaved) {
+        removeFavorite(productId, btn, feedback);
+      } else {
+        addFavorite(productId, productTitle, productImage, productHandle, btn, feedback);
+      }
+    {% else %}
+      window.location.href = '/account/login?return_url=' + encodeURIComponent(window.location.pathname);
+    {% endif %}
   };
 
   function addFavorite(productId, productTitle, productImage, productHandle, btn, feedback) {
@@ -86,11 +90,16 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        productId:     productId,
-        productTitle:  productTitle,
-        productImage:  productImage,
-        productHandle: productHandle
-      })
+      customerId: "{{ customer.id }}",
+      customerName: "{{ customer.first_name | escape }} {{ customer.last_name | escape }}",
+      customerEmail: "{{ customer.email }}",
+
+      productId: productId,
+      productTitle: productTitle,
+      productImage: productImage,
+      productHandle: productHandle,
+      productPrice: "{{ product.price | divided_by: 100.0 }}"
+    })
     })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -116,10 +125,15 @@
     fetch(FAV_API + '/api/favorites', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId: productId })
+      body: JSON.stringify({
+        customerId: "{{ customer.id }}",
+        productId: productId
+      })
     })
     .then(function (r) { return r.json(); })
     .then(function () {
+      btn.disabled = false;
+      btn.classList.remove('fav-btn--loading');
       btn.setAttribute('aria-pressed', 'false');
       btn.setAttribute('aria-label', 'Save to favorites');
       btn.classList.remove('fav-btn--saved');

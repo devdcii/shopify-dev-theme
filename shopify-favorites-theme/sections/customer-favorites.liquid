@@ -36,17 +36,26 @@
 (function () {
   'use strict';
 
-  const API_URL  = '{{ section.settings.api_url }}';
+  const API_URL = '{{ section.settings.api_url }}';
   const grid     = document.getElementById('cf-grid');
   const toastReg = document.getElementById('cf-toast-region');
 
   /* ── Helpers ───────────────────────────────────── */
 
   function formatDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric'
-    });
-  }
+  // Force UTC interpretation so Manila time (+8) is correct
+  var normalized = iso ? String(iso).replace(' ', 'T').replace(/Z?$/, 'Z') : null;
+  if (!normalized) return '';
+  return new Date(normalized).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
 
   function safeId(id) {
     // productId may contain special chars — sanitise for use in selectors
@@ -151,13 +160,16 @@
 
   /* ── Load ───────────────────────────────────────── */
 
+  // customer-favorites.liquid — replace your loadFavorites() function
+
   function loadFavorites() {
     grid.innerHTML = '<div class="cf-loading" aria-live="polite">'
       + '<span class="cf-spinner" aria-hidden="true"></span>'
       + '<p>Loading your favorites&hellip;</p>'
       + '</div>';
 
-    fetch(API_URL + '/api/favorites')
+    // FIX: pass customerId so the API filters correctly
+    fetch(API_URL + '/api/favorites?customerId={{ customer.id }}')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.favorites || data.favorites.length === 0) {
@@ -165,7 +177,6 @@
           return;
         }
         grid.innerHTML = data.favorites.map(cardHTML).join('');
-        // Attach heart listeners after render
         grid.querySelectorAll('.cf-card__heart').forEach(function (btn) {
           btn.addEventListener('click', function () {
             removeFavorite(btn.dataset.productId, btn);
@@ -188,7 +199,10 @@
     fetch(API_URL + '/api/favorites', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId: productId })
+      body: JSON.stringify({
+        customerId: "{{ customer.id }}",
+        productId: productId
+      })
     })
     .then(function (r) { return r.json(); })
     .then(function () {

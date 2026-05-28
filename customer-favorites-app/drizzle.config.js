@@ -1,10 +1,14 @@
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: "./app/db/schema.js",
+  dialect: "mysql",
+  schema: "./app/db/schema.server.js",
   out: "./app/db/migrations",
-  dialect: "sqlite",
   dbCredentials: {
-    url: "./favorites.db",
+    host: "127.0.0.1",
+    port: 3306,
+    user: "root",
+    password: undefined,
+    database: "ironforge_db",
   },
 });

@@ -1,0 +1,145 @@
+<section class="ironforge-quiz">
+  <h2>🏋️ Build Your Home Gym</h2>
+  <p>Answer 3 quick questions and we'll recommend the perfect equipment for you.</p>
+  <button class="quiz-btn" onclick="document.getElementById('ironforge-quiz-modal').style.display='flex'">
+    Take the Quiz
+  </button>
+</section>
+
+<!-- Quiz Modal -->
+<div id="ironforge-quiz-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#1a1a1a; border-radius:12px; padding:40px; max-width:500px; width:90%; position:relative; border:1px solid #c0392b;">
+
+    <!-- Close button -->
+    <button onclick="document.getElementById('ironforge-quiz-modal').style.display='none'"
+      style="position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+
+    <!-- Step 1 -->
+    <div id="quiz-step-1">
+      <h3 style="color:#fff; font-size:1.6rem; margin-bottom:1.5rem;">What is your fitness goal?</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button class="quiz-option" onclick="quizNext(2, 'strength')">💪 Build Strength</button>
+        <button class="quiz-option" onclick="quizNext(2, 'cardio')">🏃 Improve Cardio</button>
+        <button class="quiz-option" onclick="quizNext(2, 'weight')">⚖️ Lose Weight</button>
+        <button class="quiz-option" onclick="quizNext(2, 'muscle')">🏋️ Build Muscle</button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="quiz-step-2" style="display:none;">
+      <h3 style="color:#fff; font-size:1.6rem; margin-bottom:1.5rem;">What is your budget?</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button class="quiz-option" onclick="quizNext(3, 'low')">💵 Under $500</button>
+        <button class="quiz-option" onclick="quizNext(3, 'mid')">💵 $500 - $2000</button>
+        <button class="quiz-option" onclick="quizNext(3, 'high')">💵 $2000+</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="quiz-step-3" style="display:none;">
+      <h3 style="color:#fff; font-size:1.6rem; margin-bottom:1.5rem;">How much space do you have?</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button class="quiz-option" onclick="quizResult('small')">📦 Small (spare corner)</button>
+        <button class="quiz-option" onclick="quizResult('medium')">🏠 Medium (spare room)</button>
+        <button class="quiz-option" onclick="quizResult('large')">🏢 Large (garage/basement)</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="quiz-result" style="display:none; text-align:center;">
+      <div style="font-size:3rem; margin-bottom:16px;">🎯</div>
+      <h3 style="color:#fff; font-size:1.6rem; margin-bottom:8px;">Your Perfect Setup:</h3>
+      <p id="quiz-recommendation" style="color:rgba(255,255,255,0.8); margin-bottom:24px; line-height:1.6;"></p>
+      <a id="quiz-cta" href="/collections/all" class="quiz-btn">Shop Now →</a>
+      <br><br>
+      <button onclick="quizReset()" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:1.2rem;">
+        Start Over
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.quiz-option {
+  background: #2c2c2c;
+  border: 1.5px solid #444;
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+  font-family: inherit;
+}
+.quiz-option:hover {
+  border-color: #c0392b;
+  background: #3a1a1a;
+}
+</style>
+
+<script>
+  let quizAnswers = {};
+
+  function quizNext(step, answer) {
+    quizAnswers['step' + (step - 1)] = answer;
+    document.getElementById('quiz-step-' + (step - 1)).style.display = 'none';
+    document.getElementById('quiz-step-' + step).style.display = 'block';
+  }
+
+  function quizResult(space) {
+    quizAnswers['space'] = space;
+    document.getElementById('quiz-step-3').style.display = 'none';
+
+    const goal = quizAnswers['step1'];
+    const budget = quizAnswers['step2'];
+
+    let recommendation = '';
+    let ctaUrl = '/collections/all';
+
+    if (goal === 'strength' && budget === 'high' && space === 'large') {
+      recommendation = 'Full Power Rack + Olympic Barbell Set + Plate Storage — The ultimate strength setup for serious lifters.';
+      ctaUrl = '/collections/all';
+    } else if (goal === 'strength' && budget === 'mid') {
+      recommendation = 'Olympic Barbell + Weight Plates + Adjustable Bench — Perfect for building serious strength at home.';
+      ctaUrl = '/collections/all';
+    } else if (goal === 'cardio' || goal === 'weight') {
+      recommendation = 'Treadmill + Resistance Bands + Jump Rope — Burn calories and improve cardio from home.';
+      ctaUrl = '/collections/all';
+    } else if (goal === 'muscle' && space === 'small') {
+      recommendation = 'Adjustable Dumbbells + Pull-up Bar + Resistance Bands — Maximum muscle, minimum space.';
+      ctaUrl = '/collections/all';
+    } else if (budget === 'low') {
+      recommendation = 'Adjustable Dumbbells + Resistance Bands — Best value starter kit for any fitness goal.';
+      ctaUrl = '/collections/all';
+    } else {
+      recommendation = 'Multi-Station Home Gym Machine — All-in-one solution for every workout type.';
+      ctaUrl = '/collections/all';
+    }
+
+    document.getElementById('quiz-recommendation').innerText = recommendation;
+    document.getElementById('quiz-cta').href = ctaUrl;
+    document.getElementById('quiz-result').style.display = 'block';
+  }
+
+  function quizReset() {
+    quizAnswers = {};
+    document.getElementById('quiz-result').style.display = 'none';
+    document.getElementById('quiz-step-1').style.display = 'block';
+    document.getElementById('quiz-step-2').style.display = 'none';
+    document.getElementById('quiz-step-3').style.display = 'none';
+  }
+</script>
+
+{% schema %}
+{
+  "name": "IRONFORGE Quiz",
+  "settings": [],
+  "presets": [
+    {
+      "name": "IRONFORGE Quiz"
+    }
+  ]
+}
+{% endschema %}

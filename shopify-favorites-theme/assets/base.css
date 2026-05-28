@@ -3168,3 +3168,169 @@ details-disclosure > details {
   display: block; /* removes inline bottom gap */
   vertical-align: middle;
 }
+
+/* ═══════════════════════════════════════════
+   IRONFORGE - Custom Branding
+═══════════════════════════════════════════ */
+
+:root {
+  --ironforge-red: #c0392b;
+  --ironforge-dark: #1a1a1a;
+  --ironforge-gray: #2c2c2c;
+  --ironforge-light: #f5f5f5;
+  --ironforge-gold: #f39c12;
+}
+
+/* ── Hero Section ── */
+.ironforge-hero {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+  color: #fff;
+  padding: 80px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ironforge-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="%23c0392b" stroke-width="0.5" opacity="0.3"/></svg>') center/cover;
+  opacity: 0.1;
+}
+
+.ironforge-hero h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.2rem;
+  margin-bottom: 1rem;
+}
+
+.ironforge-hero h1 span {
+  color: var(--ironforge-red);
+}
+
+.ironforge-hero p {
+  font-size: 1.4rem;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 2.5rem;
+  max-width: 500px;
+  margin-inline: auto;
+}
+
+.ironforge-hero .btn-hero {
+  display: inline-block;
+  background: var(--ironforge-red);
+  color: #fff;
+  padding: 14px 36px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.ironforge-hero .btn-hero:hover {
+  background: #a93226;
+  transform: translateY(-2px);
+}
+
+/* ── Categories Section ── */
+.ironforge-categories {
+  padding: 60px 40px;
+  background: var(--ironforge-light);
+}
+
+.ironforge-categories h2 {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15rem;
+  margin-bottom: 2rem;
+  color: var(--ironforge-dark);
+}
+
+.ironforge-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.ironforge-category-card {
+  background: var(--ironforge-dark);
+  border-radius: 8px;
+  padding: 32px 20px;
+  text-align: center;
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+}
+
+.ironforge-category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(192,57,43,0.3);
+  border-color: var(--ironforge-red);
+  color: #fff;
+}
+
+.ironforge-category-card .cat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.ironforge-category-card h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  color: #fff;
+  margin: 0;
+}
+
+/* ── Quiz Section ── */
+.ironforge-quiz {
+  padding: 60px 40px;
+  background: var(--ironforge-dark);
+  color: #fff;
+  text-align: center;
+}
+
+.ironforge-quiz h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.ironforge-quiz p {
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 2rem;
+}
+
+.quiz-btn {
+  display: inline-block;
+  background: var(--ironforge-red);
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  font-size: 1.4rem;
+  transition: background 0.2s;
+}
+
+.quiz-btn:hover { background: #a93226; }

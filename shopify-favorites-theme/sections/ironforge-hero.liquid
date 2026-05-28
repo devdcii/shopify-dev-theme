@@ -1,0 +1,36 @@
+<section class="ironforge-hero">
+  <div style="position: relative; z-index: 1;">
+    <h1>
+      FORGE YOUR<br>
+      <span>BEST BODY</span>
+    </h1>
+    <p>Premium gym equipment for serious lifters. Built to last, designed to perform.</p>
+    <a href="{{ section.settings.button_url }}" class="btn-hero">
+      {{ section.settings.button_text }}
+    </a>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "IRONFORGE Hero",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button Text",
+      "default": "Shop Equipment"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button URL"
+    }
+  ],
+  "presets": [
+    {
+      "name": "IRONFORGE Hero"
+    }
+  ]
+}
+{% endschema %}
